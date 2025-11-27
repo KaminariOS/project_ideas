@@ -4,6 +4,6 @@
 
 - [K8S record and replay for debugging faults](/k8s.md)
 
-- SSH over HTTP3
+- [SSH over HTTP3](/quic.md)
 
 - [Open-weight LLM compression for consumer-grade GPU](/gpu.md)
