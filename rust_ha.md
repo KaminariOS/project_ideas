@@ -1,6 +1,127 @@
 # Rust High Availability for blockchain
 
 - [超越内存安全：高可用 Rust 基础设施的挑战与实践](https://www.bilibili.com/video/BV1MUnLztErN)
+## **Summary**
+
+The talk discusses real-world security and availability issues in Rust-based blockchain infrastructure, showing that *memory safety alone* does not guarantee system safety.
+
+### **1. Rust Is Widely Used in Blockchain**
+
+Rust is now a dominant language for blockchain infrastructure—especially for smart-contract virtual machines (VMs) like Solana VM, Move VM, and Cosmos WASM. Rust’s memory safety reduces many classic vulnerabilities, but this creates new challenges: bug hunters struggle to find memory-safety bugs, yet systems remain vulnerable in *other* ways.
+
+### **2. Smart-Contract VMs and Their Security Requirements**
+
+A smart-contract VM is a core component of the blockchain “world computer.”
+Its main security requirements:
+
+* Prevent memory-safety bugs
+* Ensure **availability** — the blockchain must never crash
+
+Even with safe Rust, VMs still crash due to logic errors, panics, resource exhaustion, and dependency issues.
+
+---
+
+## **3. Problem Category 1: Panics**
+
+### **(a) Developer-introduced panics**
+
+Some projects accidentally or carelessly include `assert!`, `panic!`, or `unwrap`.
+Example:
+In the Move VM verifier, developers reused code that included `assert!`, unintentionally creating a panic path. A panic on-chain causes *all validator nodes* to crash, jeopardizing the entire blockchain.
+
+### **(b) Panics inherited from dependencies**
+
+Large Rust blockchain stacks depend on complex third-party crates.
+Example:
+
+* Cosmos WASM → Wasmer → rkyv
+* rkyv contains a documented `unwrap` panic
+* Cosmos developers were unaware of this indirect panic source
+
+A carefully crafted malicious input can bypass multiple layers of checks and trigger the hidden panic, crashing all nodes. These dependency chains make panics difficult to control or even detect.
+
+### **Catching panics is limited**
+
+* Panics implemented as `abort` cannot be caught
+* If panics occur while holding locks, locks become poisoned, breaking system operation even if panic is caught
+
+### **Strategies**
+
+* Fuzzing to find unexpected panic paths
+  (e.g., using `arbitrary`)
+* Using `cargo clippy` to detect `panic!`, `unwrap`, `expect`, etc.
+* Documenting panic conditions clearly
+* Checking panic conditions before calling risky functions
+
+---
+
+## **4. Problem Category 2: Resource Exhaustion**
+
+Even without memory-unsafe bugs, Rust systems can still be DOS’ed via CPU or memory exhaustion.
+
+### **(a) Query APIs**
+
+Without limits, users can request extremely large datasets, causing:
+
+* Heavy CPU usage
+* Large memory usage → OOM kill → process termination
+
+### **(b) Smart-contract execution**
+
+Smart contracts are often Turing-complete, so blockchain VMs use **gas metering** to cap CPU and memory usage.
+
+### **Case study: Incorrect memory-usage accounting**
+
+Suite/Aptos VM miscalculated memory for `Vec<T>` as:
+
+```
+vec.len() * size_of::<T>()
+```
+
+But even an empty vector (`len = 0`) allocates memory (capacity > 0).
+Therefore malicious contracts could create many empty vectors:
+
+* Consuming **100+ GB** RAM
+* Without consuming gas
+
+Broadcasting such transactions could make all validators run OOM and crash the network.
+
+### **Prevention**
+
+* Avoid infinite loops and extremely long loops
+* Model memory and CPU usage accurately
+* Use meters that correctly track resource usage
+* Ensure metering cannot be bypassed
+* Use profiling/visualization tools (e.g., ByteHound, perf) to identify hotspots
+
+---
+
+## **5. Other Availability Risks**
+
+Rust avoids memory-safety bugs but does **not** eliminate:
+
+* `unsafe` code issues
+* Memory leaks
+* Deadlocks / livelocks / starvation
+  These can also break blockchain node availability.
+
+---
+
+## **6. Conclusion**
+
+Rust is powerful for infrastructure, but real-world blockchain systems still face serious reliability challenges. Key takeaways:
+
+* Avoid panic-prone constructs (`unwrap`, `assert!`) in high-availability systems
+* Document panic conditions clearly
+* Be aware of and audit dependency chains
+* Apply strict and accurate resource limits
+* Continuously test with fuzzing and profiling
+
+Even simple mistakes—like an unnecessary `assert!` or incorrect gas calculation—can crash an entire blockchain network. Improving panic hygiene, dependency quality, and resource metering is essential for safer Rust ecosystems, especially in blockchain infrastructure.
+
+
+
+- 
   ```
     00:00:04	大家好,今天我来给大家分享一下RAST在超越内存安全这个视角上的一些实践与经验。目前RAST在基础设施这个领域是非常广泛的应用。因为RAST有一个很核心的特性,就是它很安全。而这对于开发者来说,我们可以更轻松地写出一些比较安全的程序。
 
