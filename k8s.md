@@ -6,4 +6,8 @@ However, in production environments, faults can surface at any level(Application
 
 Treating a pod as a blackbox ?
 
+What if it is only for AI agent evaluation?
+
+AI agents are stupid and the tools they use are limited
+
 
