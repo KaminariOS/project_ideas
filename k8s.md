@@ -10,4 +10,9 @@ What if it is only for AI agent evaluation?
 
 AI agents are stupid and the tools they use are limited
 
+Is there really a demand for bit-for-bit reproduction?
+
+How is this better than the cloud observability stack?
+
+
 
