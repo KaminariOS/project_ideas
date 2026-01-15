@@ -13,6 +13,7 @@
 - [SSH over HTTP3](/quic.md)
 - [K8S record and replay for debugging faults](/k8s.md)
 - [Open-weight LLM compression for consumer-grade GPU](/gpu.md)
+- [LLM agent for MOBA game(HoK)(SFT)]
 
 
 
